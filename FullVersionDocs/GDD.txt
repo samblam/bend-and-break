@@ -1,0 +1,379 @@
+1. Executive Summary
+Bend & Break is a mobile-web, physics-based fighter game where players manipulate ragdolls with articulated limbs to engage in strategic combat. Time advances only when players adjust their joints, offering a tactical twist inspired by Toribash and SUPERHOT. The game features two control schemes: a button-based system and a gesture-based system, both enhanced with visual indicators for motion and strength. The primary mode is a single-player survival experience with missions, boss waves, and a progression system, complemented by an optional 1v1 multiplayer mode. A ghosting feature allows players to preview move outcomes, and limb shattering adds depth to combat. Hits are now registered on any opponent body part, ensuring dynamic and chaotic gameplay.
+Key Highlights:
+Dual Control Schemes: Button-based and gesture-based, with visual indicators for motion and strength.  
+
+Enhanced Single-Player: Survival mode with missions, bosses, and progression.  
+
+Optional Multiplayer: Simplified 1v1 arena brawl.  
+
+Ghosting Feature: Visualize move outcomes during planning.  
+
+Limb Shattering: Tactical combat with detachable limbs.
+
+2. Game Overview
+2.1 Concept
+In Bend & Break, players control a ragdoll’s joints in a physics-driven arena, executing attacks by adjusting limb positions. The game offers two control options: a button-based system with controls at the screen’s bottom and a gesture-based system where players select limbs and use swipes or drags to manipulate them. Visual indicators display motion direction and strength, aiding strategic decisions. The single-player mode pits players against waves of AI opponents, enriched with missions, boss encounters, and a progression system. An optional multiplayer mode enables 1v1 battles. Time moves only during adjustments, and a ghost outline previews the ragdoll’s post-move state.
+2.2 Unique Selling Points (USPs)
+Dual Control Schemes: Button-based for precision and gesture-based for intuitive play, both with motion and strength indicators.  
+
+Enhanced Single-Player: Missions, boss waves, and progression system for replayability.  
+
+Ghosting Mechanism: Preview move outcomes before committing.  
+
+Limb Shattering: Strategic depth through detachable limbs.  
+
+Mobile-Optimized: Touch-friendly, instant-play experience.
+
+2.3 Target Audience
+Primary: Gamers aged 12-35 who enjoy physics-based combat, strategy, and mobile gaming.  
+
+Secondary: Casual mobile-web players seeking quick, engaging challenges.  
+
+Appeal: Fans of tactical fighters, chaotic physics, and competitive leaderboards.
+
+3. Core Mechanics
+3.1 Ragdoll Structure
+Components:  
+Torso: 1x2x1 box (2 kg).  
+
+Left Upper Arm: 0.5x1x0.5 box (0.3 kg), hinged at shoulder.  
+
+Left Lower Arm: 0.5x1x0.5 box (0.2 kg), hinged at elbow.  
+
+Right Upper Arm: 0.5x1x0.5 box (0.3 kg), hinged at shoulder.  
+
+Right Lower Arm: 0.5x1x0.5 box (0.2 kg), hinged at elbow.  
+
+Left Thigh: 0.5x1x0.5 box (0.4 kg), hinged at hip.  
+
+Left Shin: 0.5x1x0.5 box (0.3 kg), hinged at knee.  
+
+Right Thigh: 0.5x1x0.5 box (0.4 kg), hinged at hip.  
+
+Right Shin: 0.5x1x0.5 box (0.3 kg), hinged at knee.
+
+Joints:  
+Shoulders: Hinge (X-axis), 0°–90°.  
+
+Elbows: Hinge (X-axis), 0°–90°.  
+
+Hips: Hinge (Z-axis), 0°–90°.  
+
+Knees: Hinge (Z-axis), 0°–90°.
+
+Physics: Friction (0.1), gravity (-5 m/s²).
+
+3.2 Joint Manipulation
+Control Schemes:  
+Button-Based Control ("Bottoms"):  
+Four limb buttons (60px) at the screen bottom: "Left Arm," "Right Arm," "Left Leg," "Right Leg."  
+
+Tapping a limb button displays sub-buttons: "Upper +10°" / "Upper -10°" (shoulder/hip), "Lower +10°" / "Lower -10°" (elbow/knee).  
+
+A persistent "Commit" button (60px) ends the adjustment phase.
+
+Gesture-Based Control ("Select, Then Kick and Drag"):  
+Tap a limb to select it (highlighted with a glow).  
+
+Swipe to "kick"—swipe direction and speed dictate movement and force.  
+
+Drag to reposition the limb, with the game calculating joint angles.
+
+Visual Indicators:  
+Motion Indicators: Arrows or lines on each limb showing movement direction, updated in real-time.  
+
+Strength Indicators: Color gradients (e.g., green to red) or arrow size variations reflecting force or speed (e.g., larger arrows for stronger kicks).  
+
+Displayed on the ghost outline during adjustments.
+
+Ghosting Feature:  
+A semi-transparent ghost ragdoll previews the post-physics position and pose.  
+
+Updates instantly with each adjustment for strategic planning.
+
+3.3 Time Mechanics
+States:  
+Idle: TimeScale = 0 (frozen).  
+
+Adjustment: TimeScale = 0.1 (0.1s per action).  
+
+Resolution: TimeScale = 1 (1s after commit).
+
+Flow:  
+Adjustment Phase: Adjust joints using buttons or gestures (10 frames), with ghosting active.  
+
+Commit Phase: Press "Commit" or wait 2s.  
+
+Resolution Phase: Physics resolves (1s).
+
+3.4 Physics-Based Combat
+Hit Detection:  
+Condition: A hit is detected when a player's limb collides with any part of the opponent's ragdoll (torso, upper arms, lower arms, thighs, or shins).  
+
+Velocity: The player's limb must be moving at ≥5 m/s at the point of contact.
+
+Hit Outcome:  
+If the hit is on an opponent's limb (upper arm, lower arm, thigh, or shin):  
+Force Application: Apply force to the opponent's ragdoll (Force = Velocity * 10 N, capped at 100 N).  
+
+Damage: Reduce the HP of the struck limb by the force amount (e.g., 50 N = 50 HP damage).  
+
+Shattering: If the limb's HP drops to ≤ 0, it shatters and detaches.
+
+If the hit is on the opponent's torso:  
+Force Application: Apply the same force to the opponent's ragdoll.  
+
+No Direct Damage: The torso does not have HP, so no shattering occurs, but the force may lead to destabilization or KO.
+
+Stun Effect: The opponent's joints lock for 0.5 seconds after any hit, interrupting actions.  
+
+Feedback: Red flash, thud sound, 10 red particles.
+
+Limb Shattering:  
+Health: Each limb segment starts with 100 HP.  
+
+Shatter:  
+Trigger: HP ≤ 0 (possible on first hit if force ≥100 N).  
+
+Effect: Limb detaches, becomes a physics object.
+
+Feedback: 20 red particles (0.2s), crack sound.  
+
+Impact:  
+Lost arm: Fewer attack options.  
+
+Lost leg: Reduced stability.
+
+Knockout (KO):  
+Condition: Head hits floor (y < 0).  
+
+Feedback: “KO!” (30px, red).
+
+3.5 Stabilizer ("Invisible Hand")
+Purpose: Prevents excessive falls, optimized for single-player.  
+
+Mechanics:  
+Strength: 0.4 for player ragdoll.  
+
+AI: Fixed at 0.5, reduced with limb loss (e.g., -0.05 per lost limb).  
+
+Behavior:  
+Full strength when idle/post-resolution.  
+
+50% during adjustments.  
+
+Off if KO’d.
+
+3.6 Victory Conditions
+Single-Player: Survive waves, complete missions, maximize points.  
+
+Multiplayer (Optional): Last player standing wins.
+
+4. Single-Player Mode
+4.1 Survival Mode
+Objective: Survive AI ragdoll waves.  
+
+Gameplay:  
+Waves: Every 15s: 1 AI (Wave 1), +1 per wave (max 4).  
+
+Missions: Random tasks (e.g., “Shatter 3 limbs in 1 wave”).  
+
+Boss Waves: Every 5th wave—stronger AI (e.g., 150 HP per limb).  
+
+Story Elements: Short lore snippets between waves.
+
+Power-Ups:  
+Spawn in arena:  
+Speed Boost: +20% adjustment speed (10s).  
+
+Extra Damage: +25% force (10s).
+
+End: Player KO’d (head hits floor).
+
+4.2 AI Opponents
+Types:  
+Brawler: Fast, weak punches (30 N).  
+
+Tank: High HP (150 per limb), slow movement.  
+
+Dodger: Frequent dodging, low damage (20 N).
+
+Behavior:  
+Punch/Kick: Extend limbs (90° over 5 frames).  
+
+Dodge: Bend knees (30°), shift torso.  
+
+Logic:  
+Proximity: 70% chance to attack if <2 units from player.  
+
+Threat: 60% chance to dodge if player limb velocity >3 m/s.  
+
+Adaptation: Adjusts targeting to prioritize hitting any body part (limbs or torso) based on hit detection rules.
+
+Limb Shattering: AI limbs shatter at 0 HP, reducing attack options or stability.
+
+4.3 Progression System
+XP and Levels:  
+Earn XP: +5/hit, +25/KO.  
+
+Level up every 100 XP, unlocking:  
+Skins: Ragdoll colors.  
+
+Abilities: Faster adjustments (+5% speed/level) or time rewind (limited use).
+
+Currency:  
+Earn coins: +1/hit, +5/KO.  
+
+Spend on cosmetics (e.g., glowing shatter effects).
+
+4.4 Leaderboards
+Metrics:  
+Survival Time: Seconds survived.  
+
+Limbs Shattered: Total shattered.  
+
+Missions Completed: Total missions.
+
+Display: Top 10 globally (local storage for prototype).
+
+4.5 Ghost Mode
+Purpose: Replay top players’ runs as ghosts.  
+
+Implementation:  
+Ghosts appear as semi-transparent ragdolls, mimicking high-scoring runs.  
+
+Players compete against ghosts for better scores.
+
+5. Multiplayer Mode (Optional)
+5.1 Arena Brawl
+Objective: 1v1 fight against another player.  
+
+Setup:  
+Limited to 2 players.  
+
+Enable/disable via settings.
+
+5.2 Networking and Synchronization
+Peer-to-Peer: WebRTC for cost-effective networking.  
+
+Events:  
+Tweak: { playerId, joint, angle }.  
+
+Commit: { playerId, commit: true }.  
+
+Shatter: { playerId, limb, shattered: true }.  
+
+Sync: { playerId, pos: [x,y,z] } post-resolution.
+
+6. Visual and Audio Design
+6.1 Art Style
+Arena: 5x5x0.1 white plane (Lambert).  
+
+Ragdolls: Red low-poly (9 segments, Phong).  
+
+Ghost Outlines: Semi-transparent (opacity 0.5), updated real-time.  
+
+Effects:  
+Hit: 10 red particles (0.1s).  
+
+Shatter: 20 red particles (0.2s).  
+
+Power-Ups: Glowing orbs (e.g., blue for speed, red for damage).
+
+6.2 User Interface (UI)
+Control Scheme Selection:  
+Settings toggle: "Button Controls" or "Gesture Controls."
+
+Button-Based UI:  
+Limb buttons (60px) at screen bottom.  
+
+Sub-buttons (60px) appear on limb selection.  
+
+"Commit" button (60px) always visible.
+
+Gesture-Based UI:  
+No persistent buttons; tap limbs directly.  
+
+Selected limb glows for feedback.
+
+Visual Indicators:  
+Motion: Arrows or lines on limbs.  
+
+Strength: Color/size variations (e.g., larger arrows for more force).
+
+Single-Player UI:  
+Mission objectives (top-right, 20px).  
+
+XP bar (bottom, 30px).  
+
+Power-up icons (40px).  
+
+Achievements (e.g., “Bone Breaker: Shatter 50 limbs”).
+
+6.3 Audio
+Hum: <50KB WAV (loop, TimeScale < 1).  
+
+Thud: <50KB WAV (hit).  
+
+Crack: <50KB WAV (shatter).  
+
+Power-Up: <50KB WAV (pickup).  
+
+Preload: Inline base64.
+
+7. Technical Requirements
+7.1 Tools and Technologies
+Rendering: Three.js (r128+).  
+
+Physics: Ammo.js.  
+
+Input Handling: Hammer.js for gesture recognition (swipe, drag).  
+
+Networking (Optional): WebRTC for multiplayer.  
+
+Storage: Local storage for leaderboards/progression.
+
+7.2 Performance Targets
+FPS: 30+ on mid-tier mobile (2020 devices).  
+
+Load: <1s, <1MB total.
+
+7.3 Constraints
+Mobile: Touch input, responsive design.  
+
+No Loading: Instant play, no login.  
+
+AI Coding: 90-100% via Claude.
+
+8. Development Plan
+8.1 Sprint Overview (March 18–24, 2025)
+Day 1: Core mechanics, ragdoll structure, time control, ghosting.  
+
+Day 2: Button-based control scheme, visual indicators.  
+
+Day 3: Gesture-based control scheme, refine indicators.  
+
+Day 4: Survival mode, AI behavior.  
+
+Day 5: Progression system, missions, boss waves.  
+
+Day 6: Leaderboards, ghost mode, optional multiplayer.  
+
+Day 7: UI polish, audio, visual effects, testing, deployment.
+
+8.2 Task Breakdown
+Day 1: “Three.js + Ammo.js: 5x5 arena, ragdoll (torso + 8 segments, hinges), TimeScale (0/0.1/1), ghosting.”  
+
+Day 2: “Button-based controls (limb buttons, sub-controls, commit), indicators (arrows, strength).”  
+
+Day 3: “Gesture-based controls (tap, swipe/drag), refine indicators.”  
+
+Day 4: “Survival mode (waves, missions, power-ups), AI (Brawler, Tank, Dodger), adaptive difficulty.”  
+
+Day 5: “XP system, unlocks, currency, boss waves.”  
+
+Day 6: “Leaderboards (local storage), ghost mode, WebRTC multiplayer.”  
+
+Day 7: “UI (control toggle, objectives, XP bar, power-up icons), audio (power-up sound), effects (ghost outlines), test on mobile, optimize to 30+ FPS, deploy (Netlify), submit GDD + link.”
+

@@ -1,0 +1,422 @@
+Bend & Break - Technical Design Document (TDD)
+Version: 1.1
+Date: March 17, 2025
+Prepared By: [Your Name]
+Target Platform: Mobile Web (Browser-Based)
+Engine: Three.js (Rendering) + Ammo.js (Physics)
+Input Handling: Hammer.js (Gesture Recognition)
+Networking: WebRTC (Optional Multiplayer)
+Storage: Local Storage (Progression, Leaderboards)
+Jam: 2025 Vibe Coding Game Jam (Idea Submission: March 25, 2025)  
+Table of Contents
+System Architecture (#1-system-architecture)  
+1.1 Overview  
+
+1.2 Core Systems  
+
+1.3 Game Loop
+
+Rendering System (#2-rendering-system)  
+2.1 Scene Setup  
+
+2.2 Ragdoll Rendering  
+
+2.3 Visual Effects  
+
+2.4 Ghosting Mechanism
+
+Physics System (#3-physics-system)  
+3.1 Physics World  
+
+3.2 Ragdoll Physics  
+
+3.3 Stabilizer Implementation  
+
+3.4 Collision Detection and Response
+
+Input System (#4-input-system)  
+4.1 Button-Based Controls  
+
+4.2 Gesture-Based Controls  
+
+4.3 Visual Indicators
+
+Time Control System (#5-time-control-system)  
+5.1 Time States  
+
+5.2 Time Scale Management
+
+AI System (#6-ai-system)  
+6.1 AI Types and Behaviors  
+
+6.2 Decision Logic  
+
+6.3 AI Limb Shattering
+
+UI System (#7-ui-system)  
+7.1 DOM Elements  
+
+7.2 UI States and Transitions
+
+Progression and Leaderboard Systems (#8-progression-and-leaderboard-systems)  
+8.1 Progression Data  
+
+8.2 Leaderboard Management
+
+Multiplayer System (Optional) (#9-multiplayer-system-optional)  
+9.1 WebRTC Setup  
+
+9.2 Synchronization
+
+Performance Optimizations (#10-performance-optimizations)  
+10.1 Asset Management  
+
+10.2 Physics Optimizations  
+
+10.3 Network Traffic (Optional)
+
+Security Considerations (#11-security-considerations)  
+
+Development Plan (#12-development-plan)  
+12.1 Daily Tasks (March 18–24, 2025)  
+
+12.2 Testing and Debugging
+
+Deployment (#13-deployment)
+
+1. System Architecture
+1.1 Overview
+Bend & Break is a mobile-optimized, browser-based game leveraging Three.js for 3D rendering and Ammo.js for physics simulations. It features a modular architecture with systems for rendering, physics, input (supporting both button and gesture controls), time control, AI, UI, progression, and optional multiplayer. Local storage manages player progress and leaderboards, while WebRTC supports peer-to-peer multiplayer if implemented. The game targets 30+ FPS on mid-tier mobile devices (e.g., 2020 Android/iPhone models).
+1.2 Core Systems
+Rendering System: Handles 3D visuals using Three.js.
+
+Physics System: Simulates ragdoll dynamics with Ammo.js.
+
+Input System: Processes dual control schemes (buttons and gestures) via Hammer.js.
+
+Time Control System: Manages game states and physics timing.
+
+AI System: Drives opponent behavior in single-player mode.
+
+UI System: Displays DOM-based controls and feedback.
+
+Progression and Leaderboard Systems: Tracks stats and rankings locally.
+
+Multiplayer System (Optional): Enables 1v1 matches via WebRTC.
+
+1.3 Game Loop
+The game loop runs at 60 FPS:
+Input Processing: Captures button clicks or gestures.
+
+Time State Check: Updates based on idle, adjusting, or resolving state.
+
+Physics Step: Advances simulation with timeScale (0, 0.1, or 1).
+
+AI Update: Adjusts AI behavior in single-player mode.
+
+Rendering: Syncs Three.js scene with physics.
+
+UI Update: Refreshes DOM elements.
+
+Code Snippet:
+javascript
+
+function gameLoop() {
+  const deltaTime = clock.getDelta();
+  inputSystem.processInputs();
+  timeControlSystem.update();
+  if (singlePlayer) aiSystem.update(deltaTime);
+  physicsSystem.step(deltaTime * timeControlSystem.timeScale);
+  renderingSystem.update();
+  uiSystem.refresh();
+  requestAnimationFrame(gameLoop);
+}
+
+2. Rendering System
+2.1 Scene Setup
+Scene: THREE.Scene named scene.
+Arena: PlaneGeometry(5, 5) with MeshLambertMaterial({ color: 0xaaaaaa }), positioned [0, 0, 0], rotated [-Math.PI/2, 0, 0], receiveShadow: true.
+
+Camera: PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000), at [0, 5, 10], targeting [0, 0, 0].
+Resize: Adjusts aspect and projectionMatrix on window.onresize.
+
+Lighting: DirectionalLight(0xffffff, 1.0) at [0, 10, 0], castShadow: true.
+
+Renderer: WebGLRenderer({ antialias: true }), shadowMap enabled, appended to <body>.
+
+2.2 Ragdoll Rendering
+Structure: 9 Mesh objects per ragdoll:
+Torso: BoxGeometry(1, 2, 1), mass 2 kg.
+
+Limbs: 8 segments (upper/lower arms/legs), BoxGeometry(0.5, 1, 0.5), mass 0.2–0.4 kg.
+
+Material: MeshPhongMaterial({ color: 0xff0000 }), castShadow: true.
+
+Metadata: userData: { type: "torso" | "left_upper_arm" | ... }.
+
+Sync: Updates position and quaternion from Ammo.js btRigidBody transforms.
+
+2.3 Visual Effects
+Hit Particles: On collision (velocity ≥5 m/s):
+10 Mesh cubes (BoxGeometry(0.1, 0.1, 0.1), red), random velocity [±1, ±1, ±1], fade over 0.1s.
+
+Shatter Particles: On limb shatter:
+20 cubes, velocity [±2, ±2, ±2], fade over 0.2s.
+
+Flash: Tween material color to 0xff5555 and back over 0.2s on hit.
+
+2.4 Ghosting Mechanism
+Setup: Duplicate ragdoll Mesh with opacity: 0.5.
+
+Behavior: Simulate ghost physics at timeScale = 0.1 during adjusting.
+
+Visibility: Show during adjustments, hide on commit/reset.
+
+3. Physics System
+3.1 Physics World
+Setup: Ammo.btDiscreteDynamicsWorld.
+Gravity: [0, -5, 0] m/s².
+
+Components: btDefaultCollisionConfiguration, btCollisionDispatcher, btDbvtBroadphase, btSequentialImpulseConstraintSolver.
+
+Ground: Static btRigidBody, btBoxShape(btVector3(2.5, 0.05, 2.5)), mass 0, at [0, -0.05, 0].
+
+3.2 Ragdoll Physics
+Bodies:
+Torso: btBoxShape(btVector3(0.5, 1, 0.5)), mass 2 kg.
+
+Limbs: btBoxShape(btVector3(0.25, 0.5, 0.25)), mass 0.2 kg (lower), 0.4 kg (upper).
+
+Joints: btHingeConstraint.
+Pivot: Aligns segment ends (e.g., shoulder [0, 1, 0], upper arm [0, -0.5, 0]).
+
+Axis: [0, 0, 1].
+
+Limits: setLimit(0, Math.PI/2) (0°–90°).
+
+Damping: setDamping(0.1).
+
+3.3 Stabilizer Implementation
+Class: Stabilizer on torso btRigidBody.
+
+Properties:
+strength: Float (0–1), default 0.4 (player), 0.5 (AI).
+
+enabled: Boolean, default true.
+
+Update:
+Compute torso up vector, cross with [0, 1, 0], scale by strength * 10 Nm.
+
+Apply applyTorque(btVector3(x, y, z)).
+
+Reduce strength by 0.05 per lost leg; disable if head y < 0 (KO).
+
+3.4 Collision Detection and Response
+Hit Detection:
+btCollisionWorld::contactTest for limb-opponent collisions.
+
+Velocity ≥5 m/s: Reduce limb HP by collisionForce (e.g., 50 N = 50 HP).
+
+Torso: Apply force, no HP loss.
+
+Stun: Lock joints for 0.5s, trigger effects.
+
+Shatter: HP ≤ 0, remove constraint, add limb as btRigidBody.
+
+KO: Head y < 0.
+
+4. Input System
+4.1 Button-Based Controls
+UI:
+Limb buttons: <div class="limb-button" data-limb="left_arm">Left Arm</div>.
+
+Sub-buttons: <div class="sub-button" data-action="upper_+10">+10°</div>.
+
+Commit: <div id="commit-button">Commit</div>.
+
+Logic:
+Limb click: Show sub-buttons.
+
+Sub-button click: Adjust joint angle (±10°), emit tweak.
+
+Commit click: Emit { commit: true }.
+
+4.2 Gesture-Based Controls
+Gestures:
+Tap: Selects a limb via raycasting, highlights with a yellow glow.
+
+Swipe: Adjusts joint angle: swipe up (+10°), swipe down (-10°), capped at ±10° per swipe.
+
+Drag: Repositions limb, maps drag distance to angle changes, snaps to 10° increments.
+
+Visual Feedback:
+Selection Glow: Yellow glow via custom shader or outline effect.
+
+Motion Arrows: THREE.ArrowHelper shows movement direction.
+
+Strength Indicators: Arrow size/color (e.g., larger/redder for stronger swipes).
+
+Implementation:
+Hammer.js on game canvas.
+
+Event mapping:
+tap → select limb.
+
+swipeup/swipedown → adjust angle.
+
+pan → drag limb.
+
+Rate-limit gestures to avoid input flooding.
+
+4.3 Visual Indicators
+Motion Arrows: ArrowHelper on limbs, direction from torque/drag.
+
+Strength: Scale arrow size or color (green → red) by gesture intensity.
+
+Applicability: Consistent across both control schemes.
+
+5. Time Control System
+5.1 Time States
+States:
+idle: timeScale = 0.
+
+adjusting: timeScale = 0.1.
+
+resolving: timeScale = 1 for 1s.
+
+Transitions:
+First tweak: idle → adjusting.
+
+Commit/timeout: adjusting → resolving.
+
+After 1s: resolving → idle.
+
+5.2 Time Scale Management
+Physics: world.stepSimulation(deltaTime * timeScale, 10, 1/60).
+
+Ghost: Separate ghost world steps during adjusting.
+
+6. AI System
+6.1 AI Types and Behaviors
+Types:
+Brawler: Fast tweaks (5 frames), 30 N.
+
+Tank: Slow tweaks (10 frames), 150 HP.
+
+Dodger: Frequent dodges (30° knees), 20 N.
+
+Actions:
+Punch: Arm to 90°.
+
+Kick: Leg to 90°.
+
+Dodge: Knees to 30°, torso shift ±0.5.
+
+6.2 Decision Logic
+State Machine:
+Idle: Action every 1s.
+
+Proximity (<2 units): 70% attack, 20% dodge, 10% block.
+
+Threat (>3 m/s): 60% dodge, 30% block, 10% attack.
+
+6.3 AI Limb Shattering
+HP: 100 (150 for Tank).
+
+Shatter: Remove limb, adapt behavior (e.g., limp if one-legged).
+
+7. UI System
+7.1 DOM Elements
+Buttons: 60x60px, border-radius: 5px, grid layout.
+
+Settings Toggle:
+<select id="control-scheme">
+<option value="buttons">Button Controls</option>
+
+<option value="gestures">Gesture Controls</option>
+
+Styled with CSS for mobile usability.
+
+Indicators: <progress id="xp-bar">, <div id="mission">.
+
+7.2 UI States and Transitions
+Control Scheme Switch:
+"Buttons": Show button UI, hide gesture hints.
+
+"Gestures": Hide button UI, show hints (e.g., "Tap to select, swipe to adjust").
+
+Dynamic Update: Refreshes UI without gameplay interruption.
+
+8. Progression and Leaderboard Systems
+8.1 Progression Data
+Storage: playerData = { xp: 0, level: 1, coins: 0, skins: ["red"], abilities: [] }.
+
+Save: localStorage.setItem("playerData", JSON.stringify(playerData)).
+
+8.2 Leaderboard Management
+Data: Array of { name, score, time, limbs }.
+
+UI: <table id="leaderboard">.
+
+9. Multiplayer System (Optional)
+9.1 WebRTC Setup
+Library: simple-peer.
+
+Signaling: Socket.IO on Heroku.
+
+9.2 Synchronization
+Events: Send tweaks, positions (20 Hz, delta-encoded).
+
+10. Performance Optimizations
+10.1 Asset Management
+Inline audio (<100KB), no textures.
+
+10.2 Physics Optimizations
+Limit to 5 ragdolls, reuse particle pools.
+
+10.3 Network Traffic
+Cap at 20 Hz, batch events.
+
+11. Security Considerations
+Cap angles (±90°), rate-limit inputs.
+
+Multiplayer: Use checksums (optional).
+
+12. Development Plan
+12.1 Daily Tasks (March 18–24, 2025)
+Day 1: Core mechanics, ragdoll structure, time control, ghosting.
+
+Day 2: Button-based controls, visual indicators.
+
+Day 3: Gesture controls with Hammer.js, refine indicators, add toggle.
+
+Day 4: Survival mode, AI behavior.
+
+Day 5: Progression, missions, boss waves.
+
+Day 6: Leaderboards, ghost mode, optional multiplayer.
+
+Day 7: UI polish, audio, effects, mobile testing, deployment.
+
+12.2 Testing and Debugging
+Gesture Focus:
+Test tap accuracy for limb selection.
+
+Verify smooth swipe/drag adjustments, no over-rotation.
+
+Check glow/arrows visibility.
+
+Mobile Testing:
+Chrome DevTools for initial tests.
+
+Real-device tests on mid-tier Android/iOS.
+
+Assess gesture responsiveness, input lag.
+
+13. Deployment
+Host: Netlify, dist/ build.
+
+Assets: Preload (<1MB).
+
+URL: bendandbreak.yourdomain.com.
+
